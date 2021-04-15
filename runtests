@@ -2,7 +2,7 @@
 
 TESTS="${1?Specify a test package}"
 
-export CXF_VERSION="3.4.4-SNAPSHOT"
+export CXF_VERSION="${CXF_VERSION:-3.4.4-SNAPSHOT}"
 export GF_VERSION="5.1.0"
 export GF_DIR="glassfish5"
 

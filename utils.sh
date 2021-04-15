@@ -18,3 +18,8 @@ function copydep {
 	-Dartifact="$dep" \
 	-Dtransitive=false "-Ddest=$dest"
 }
+
+function version {
+    local branch="${1?Specify a CXF branch}"
+    curl -s "https://raw.githubusercontent.com/apache/cxf/$branch/pom.xml" | grep -m 1 "<version>" | perl -pe 's,.*>([^<]+)<.*,$1,'
+}
