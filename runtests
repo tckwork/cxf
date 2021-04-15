@@ -1,0 +1,136 @@
+#!/bin/bash
+
+function stage {
+    STAGE="${1?Specify a stage name}"
+    echo -e "\n\033[38;5;172m$STAGE\033[0m\n"
+}
+
+function fail {
+    echo -e "\n\033[38;5;196m$STAGE FAILED\033[0m\n"
+    exit 1
+}
+
+function copydep {
+    local dep="${1?Specify a maven coordinate}"
+    mvn org.apache.maven.plugins:maven-dependency-plugin:2.8:get \
+	-DremoteRepositories=https://repository.apache.org/snapshots,https://repository.apache.org \
+	-Dartifact="$dep" \
+	-Dtransitive=false "-Ddest=$GF_HOME/lib"
+}
+
+
+export ANT_OPTS="-Djavax.xml.accessExternalSchema=all"
+
+stage 'Check tooling'
+{
+    WORKSPACE=$PWD
+    echo "PATH = ${PATH}"
+    echo "M2_HOME = ${M2_HOME?Env variable required}"
+    echo "JAVA_HOME = ${JAVA_HOME?Env variable required}"
+    echo "ANT_HOME = ${ANT_HOME?Env variable required}"
+    echo "WORKSPACE = ${WORKSPACE}"
+    java -version
+    ant -version
+    mvn -version
+} || fail
+
+CXF_VERSION="3.4.4-SNAPSHOT"
+RI_VERSION="5.1.0"
+RI_DIR="glassfish5"
+RI="glassfish-$RI_VERSION"
+RI_URL="https://repo1.maven.org/maven2/org/glassfish/main/distributions/glassfish/$RI_VERSION/$RI.zip"
+GF_HOME="$WORKSPACE/$RI_DIR/glassfish"
+
+
+stage 'Download JakartaEE TCK'
+{
+    [ -d jakartaee-tck ] && (
+	cd jakartaee-tck && git clean -fd
+    ) || {
+	git clone git@github.com:eclipse-ee4j/jakartaee-tck.git -b 8.0.0
+    }
+} || fail
+
+
+stage "Download Glassfish $RI_VERSION"
+{
+    ## Download the RI if we have not
+    [ -f "$RI.zip" ] || (
+	echo "Downloading $RI.zip" curl "$RI_URL" > "$RI.zip"
+    )
+
+    echo "Downloaded $RI.zip"
+    
+    ## Extract the RI if we have not                                                                                                                       
+    [ -d "$RI_DIR" ] || (
+	echo "Extracting to $RI_DIR"
+	unzip "$RI.zip"
+    )
+
+    echo "Extracted $RI"
+} || fail
+
+
+stage "Download Apache CXF bits"
+{
+    copydep "org.apache.cxf:cxf-core:${CXF_VERSION}:jar"
+    copydep "org.apache.cxf:cxf-rt-frontend-jaxrs:${CXF_VERSION}:jar"
+    copydep "org.apache.cxf:cxf-rt-rs-client:${CXF_VERSION}:jar"
+    copydep "org.apache.cxf:cxf-rt-rs-sse:${CXF_VERSION}:jar"
+    copydep "org.apache.cxf:cxf-rt-transports-http:${CXF_VERSION}:jar"
+    copydep "com.fasterxml.woodstox:woodstox-core:5.2.1:jar"
+
+} || fail
+
+
+stage 'Prepare JAX-RS TCK build configuration'
+{
+    curl -O https://raw.githubusercontent.com/apache/cxf/master/tck/ts.jte.template
+    perl -i -pe "s,^(web.home=.*),version=$CXF_VERSION\nGF_HOME=$GF_HOME\n\$1," ts.jte.template
+    cp jakartaee-tck/bin/xml/impl/glassfish/jersey.xml jakartaee-tck/bin/xml/impl/glassfish/cxf.xml
+} || fail
+
+
+stage 'Build JAX-RS TCK'
+{
+    export WORKSPACE="${PWD}"
+    export TS_HOME=${WORKSPACE}/jakartaee-tck
+    export javaee_home=${WORKSPACE}/glassfish5
+    export GF_HOME=${WORKSPACE}/glassfish5/glassfish
+    export AS_JAVA=$JAVA_HOME
+    export deliverabledir=jaxrs
+
+    cp -vr ts.jte.template jakartaee-tck/install/jaxrs/bin/ts.jte
+
+    (cd "${TS_HOME}/install/${deliverabledir}/bin" &&
+	 ant build.all &&
+	 ant update.jaxrs.wars
+    ) &> ant.update.jaxrs.wars.log
+
+    (cd "${TS_HOME}/release/tools/" &&
+	 ant jaxrs
+    ) &> ant.jaxrs.log
+} || fail
+
+
+stage 'Run JAX-RS TCK'
+{
+    TS_HOME="${WORKSPACE}/restful-ws-tck"
+    cp -r jakartaee-tck/release/JAXRS_BUILD/latest/restful-ws-tck "$TS_HOME"
+    cp -vr ts.jte.template "${TS_HOME}/bin/ts.jte"
+
+    (cd "${TS_HOME}/bin" &&
+	 ant config.vi &&
+	 ant deploy.all &&
+
+	 echo 'Running all TCK tests ...' &&
+	 ant run.all |& tee javatest.log | \
+	     grep "Finished Test" | perl -pe 's,.*Finished Test:,,'
+
+     ant stop-server -f xml/impl/glassfish/config.vi.xml
+     mv /tmp/JT* ${WORKSPACE}
+
+     )
+} || fail
+
+
