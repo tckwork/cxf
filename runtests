@@ -13,15 +13,13 @@ GF_DIR="glassfish5"
 
 ##[ Required Environment ]#######
 
-require JAVA_HOME
-
 export WORKSPACE=$PWD
 export ANT_OPTS="-Djavax.xml.accessExternalSchema=all"
 export TESTS="${TESTS//.//}"
 export TS_HOME="${WORKSPACE}/restful-ws-tck"
 export javaee_home="${WORKSPACE}/$GF_DIR"
 export GF_HOME="${WORKSPACE}/$GF_DIR/glassfish"
-export AS_JAVA="$JAVA_HOME"
+export AS_JAVA="${JAVA_HOME?Env variable must be set}"
 export deliverabledir="jaxrs"
 
 ##[ Run Setup ]##################

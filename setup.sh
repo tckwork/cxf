@@ -15,7 +15,7 @@ function setup {
     ##
     FILE=/tmp/latest.jar
     copydep "org.apache.cxf:cxf-rt-frontend-jaxrs:${CXF_VERSION}:jar" "/tmp/latest.jar"
-    echo "$(cat setup.sha) /tmp/latest.jar" | sha512sum -c - && {
+    sha512sum -c setup.sha && {
 	echo "Setup is current"
 	return
     }
@@ -107,5 +107,10 @@ function setup {
 	cp -vr ts.jte.template "${TS_HOME}/bin/ts.jte"
 	
     } || fail
+
+    stage 'Record CXF sha512'
+    {
+	sha512sum /tmp/latest.jar > setup.sha
+    }
 }
 
