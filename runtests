@@ -48,8 +48,8 @@ mkdir target
 ##[ Run ]########################
 
 (cd "${TS_HOME}/bin" 
- ant config.vi 
- ant deploy.all
+# ant config.vi 
+# ant deploy.all
  ant run.all         -Dall.test.dir="$TESTS" \
      -Dcts.jtroutput=true 2>&1 | tee "$WORKSPACE/target/javatest.log" | grep 'Finished Test'
  
