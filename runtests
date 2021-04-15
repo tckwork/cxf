@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 
 TESTS="${1?Specify a test package}"
 
@@ -50,11 +50,9 @@ mkdir target
 touch target/javatest.log
 
 (cd "${TS_HOME}/bin" 
- ant config.vi 
- ant deploy.all
-
- ant run.all \
-     -Dall.test.dir="$TESTS" \
+ ant config.vi       -Dall.test.dir="$TESTS" 
+ ant deploy.all      -Dall.test.dir="$TESTS"
+ ant run.all         -Dall.test.dir="$TESTS" \
      -Dcts.jtroutput=true 2>&1 | tee target/javatest.log | grep 'Finished Test'
  
  ant stop-server -f xml/impl/glassfish/config.vi.xml
