@@ -2,12 +2,15 @@
 
 ##[ Imports ]####################
 
-source "$(dirname $0)/utility.sh"
+source "$(dirname $0)/utils.sh"
 
 ##[ Functions ]##################
 
-function setup {
+function setuptck {
 
+    echo "${CXF_VERSION?Specify the CXF version}"
+    echo "${GF_VERSION?Specify the GlassFish version}"
+    
     ##
     ## Check to see if any previous setup is still good.
     ## If the build of CXF we used is the same, we don't
@@ -26,9 +29,9 @@ function setup {
     ## 
     
     export ANT_OPTS="-Djavax.xml.accessExternalSchema=all"
-    RI="glassfish-$RI_VERSION"
-    RI_URL="https://repo1.maven.org/maven2/org/glassfish/main/distributions/glassfish/$RI_VERSION/$RI.zip"
-    GF_HOME="$WORKSPACE/$RI_DIR/glassfish"
+    GF="glassfish-$GF_VERSION"
+    GF_URL="https://repo1.maven.org/maven2/org/glassfish/main/distributions/glassfish/$GF_VERSION/$GF.zip"
+    GF_HOME="$WORKSPACE/$GF_DIR/glassfish"
 
 
     stage 'Download JakartaEE TCK'
@@ -41,21 +44,22 @@ function setup {
     } || fail
 
 
-    stage "Download Glassfish $RI_VERSION"
+    stage "Download Glassfish $GF_VERSION"
     {
 	## Download the RI if we have not
-	[ -f "$RI.zip" ] || (
-	    echo "Downloading $RI.zip" curl "$RI_URL" > "$RI.zip"
+	[ -f "$GF.zip" ] || (
+	    echo "Downloading $GF.zip"
+	    curl "$GF_URL" > "$GF.zip" || fail
 	)
 	
-	echo "Downloaded $RI.zip"
+	echo "Downloaded $GF.zip"
 	
 	## Delete and re-extract the RI
-	[ -d "$RI_DIR" ] && rm -rf "$RI_DIR"
-     	echo "Extracting to $RI_DIR"
-	unzip "$RI.zip"
+	[ -d "$GF_DIR" ] && rm -rf "$GF_DIR"
+     	echo "Extracting to $GF_DIR"
+	unzip "$GF.zip" || fail
 
-	 echo "Extracted $RI"
+	 echo "Extracted $GF"
     } || fail
 
 
@@ -69,7 +73,7 @@ function setup {
 	copydep "com.fasterxml.woodstox:woodstox-core:5.2.1:jar" "$GF_HOME/lib"
     } || fail
 
-
+    
     stage 'Prepare JAX-RS TCK build configuration'
     {
 	curl -O https://raw.githubusercontent.com/apache/cxf/master/tck/ts.jte.template

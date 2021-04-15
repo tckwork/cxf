@@ -2,14 +2,14 @@
 
 TESTS="${1?Specify a test package}"
 
-CXF_VERSION="3.4.4-SNAPSHOT"
-GF_VERSION="5.1.0"
-GF_DIR="glassfish5"
+export CXF_VERSION="3.4.4-SNAPSHOT"
+export GF_VERSION="5.1.0"
+export GF_DIR="glassfish5"
 
 
 ##[ Imports ]####################
 
-#source "$(dirname $0)/setup.sh"
+source "$(dirname $0)/setup.sh"
 
 ##[ Required Environment ]#######
 
@@ -24,7 +24,7 @@ export deliverabledir="jaxrs"
 
 ##[ Run Setup ]##################
 
-#setup
+setuptck
 
 ##[ Show Environment ]###########
 
@@ -47,17 +47,18 @@ mkdir target
 
 ##[ Run ]########################
 
+touch target/javatest.log
+
 (cd "${TS_HOME}/bin" 
  ant config.vi 
  ant deploy.all
+
  ant run.all \
      -Dall.test.dir="$TESTS" \
-     -Dcts.jtroutput=true
+     -Dcts.jtroutput=true 2>&1 | tee target/javatest.log | grep 'Finished Test'
  
  ant stop-server -f xml/impl/glassfish/config.vi.xml
 
-) 2>&1 | tee target/javatest.log \
-    | grep "Finished Test" \
-    | perl -pe 's,.*Finished Test:,,'
+)
 
 mv /tmp/JT* target/
