@@ -22,6 +22,16 @@ export GF_HOME="${WORKSPACE}/$GF_DIR/glassfish"
 export AS_JAVA="${JAVA_HOME?Env variable must be set}"
 export deliverabledir="jaxrs"
 
+##[ Set Defaults ]###############
+
+[[ ! -d "$M2_HOME" && -d "$MAVEN_HOME" ]] && {
+    export M2_HOME="$MAVEN_HOME"
+}
+
+[[ ! -d "$ANT_HOME" && -d "$WORKSPACE/apache-ant-1.10.9" ]] && {
+    export ANT_HOME="$WORKSPACE/apache-ant-1.10.9"
+}
+
 ##[ Run Setup ]##################
 
 setuptck
@@ -48,11 +58,15 @@ mkdir target
 ##[ Run ]########################
 
 (cd "${TS_HOME}/bin" 
-# ant config.vi 
-# ant deploy.all
+ ant config.vi 
+ ant deploy.all
+
+ echo -e "\n---[ Begin Running Tests ]---\n"
  ant run.all         -Dall.test.dir="$TESTS" \
      -Dcts.jtroutput=true 2>&1 | tee "$WORKSPACE/target/javatest.log" | grep 'Finished Test'
- 
+
+ echo -e "\n---[ End Running Tests ]---\n"
+
  ant stop-server -f xml/impl/glassfish/config.vi.xml
 
 )

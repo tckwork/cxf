@@ -63,6 +63,30 @@ function setuptck {
     } || fail
 
 
+    stage "Download Ant"
+    [ -d "$ANT_HOME" ] || {
+
+	## Download ant if we have not
+	[ -f "$WORKSPACE/apache-ant-1.10.9-bin.zip" ] || (
+	    echo "Downloading ant"
+	    cd "$WORKSPACE" &&
+		curl -s -O https://archive.apache.org/dist/ant/binaries/apache-ant-1.10.9-bin.zip
+	)
+
+	echo "Downloaded ant"
+	
+	## Extract ant into TCK if we have not
+	[ -d "$WORKSPACE/apache-ant-1.10.9" ] || (
+	    echo "Extracting ant"
+	    cd "$WORKSPACE" &&
+		unzip "apache-ant-1.10.9-bin.zip"
+	)
+
+	echo "Extracted ant"
+
+	export ANT_HOME="$WORKSPACE/apache-ant-1.10.9"
+    }
+
     stage "Download Apache CXF bits"
     {
 	copydep "org.apache.cxf:cxf-core:${CXF_VERSION}:jar" "$GF_HOME/lib"
